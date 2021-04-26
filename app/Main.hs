@@ -11,6 +11,7 @@ data SpaceSurvivalGame = Game
   { shipLocation :: (Float, Float)        
   , shipHVelocity :: Float
   , asteroidPosition :: (Float, Float)
+  , bulletPosition :: (Float, Float)
   , paused :: Bool
   } deriving Show
 
@@ -20,6 +21,7 @@ initialState = Game
   { shipLocation = (0,-250)
   , shipHVelocity = 0
   , asteroidPosition = (0, 250)
+  , bulletPosition = (0,0)
   , paused = False  
   }
 
@@ -30,15 +32,19 @@ asteroidShape x y s = [(x,y+s),(x+s,y), (x,y+0.5),(x+0.4*s,y-0.4*s),(x-0.4*s,y+0
 render :: SpaceSurvivalGame -> Picture
 render game = 
     pictures [ mkShip $ shipLocation game
-             , asteroid 5 8]
+             , asteroid (asteroidPosition game) 5 8
+             , bullet (bulletPosition game)]
 
     where
         mkShip :: Position -> Picture
         mkShip (x,y) = translate x y $ color white $ lineLoop [(10,0), (0,25 ), (-10, 0), (9,0)]
-
         
-        asteroid x y= scale x y $color white $ lineLoop[(1,5),(1,6),(2,4),(3,3),(4,3),(4,2),(3,2),(4,0),(3,-1),(2,-3),(0,-3),(-3,1)
-          ,(-4,2),(-4,3),(-2,3),(1,5)]
+        asteroid :: Position -> Float -> Float -> Picture
+        asteroid (x,y) w h= translate x y $ scale w h $color white $ lineLoop
+          [(1,5),(1,6),(2,4),(3,3),(4,3),(4,2),(3,2),(4,0),(3,-1),(2,-3),(0,-3),(-3,1),(-4,2),(-4,3),(-2,3),(1,5)]
+
+        bullet :: Position -> Picture
+        bullet (x,y) = translate x y $ color white $ rectangleSolid 3 5
 
 
 -- Keys configurations
