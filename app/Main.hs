@@ -5,6 +5,9 @@ import Graphics.Gloss.Data.ViewPort
 import Graphics.Gloss.Interface.Pure.Game
 
 type Position = (Float, Float)
+type Velocity = (Float, Float)
+type Asteroid = (Position, Velocity, Picture)
+type Bullets = (Position, Velocity, Picture)
 
 -- Defining game elements
 data SpaceSurvivalGame = Game
@@ -12,6 +15,7 @@ data SpaceSurvivalGame = Game
   , shipHVelocity :: Float
   , asteroidPosition :: (Float, Float)
   , bulletPosition :: (Float, Float)
+  , asteroids :: [Asteroid]
   , paused :: Bool
   } deriving Show
 
@@ -22,11 +26,10 @@ initialState = Game
   , shipHVelocity = 0
   , asteroidPosition = (0, 250)
   , bulletPosition = (0,0)
+  , asteroids = []
   , paused = False  
   }
 
-asteroidShape :: Float -> Float -> Float -> [Point]
-asteroidShape x y s = [(x,y+s),(x+s,y), (x,y+0.5),(x+0.4*s,y-0.4*s),(x-0.4*s,y+0.5*s),(x-0.2*s,y-0.2*s),(x+0.6*s,y+0.3*s)]
 
 -- Draw all pictures at screen
 render :: SpaceSurvivalGame -> Picture
@@ -53,7 +56,7 @@ handleKeys (EventKey (SpecialKey KeyLeft ) Down _ _) game = game { shipHVelocity
 handleKeys (EventKey (SpecialKey KeyLeft ) Up _ _) game = game {shipHVelocity = 0}
 handleKeys (EventKey (SpecialKey KeyRight ) Down _ _) game = game {shipHVelocity = playerSpeed}
 handleKeys (EventKey (SpecialKey KeyRight ) Up _ _) game = game {shipHVelocity = 0}
--- handleKeys (EventKey (SpecialKey KeyUp ) Down _ _) game = game {}
+-- handleKeys (EventKey (SpecialKey KeySpace ) Down _ _) game = game {}
 -- handleKeys (EventKey (SpecialKey KeyUp ) Up _ _) game = game {}
 -- handleKeys (EventKey (SpecialKey KeyDown ) Down _ _) game = game {}
 -- handleKeys (EventKey (SpecialKey KeyDown ) Up _ _) game = game {}
