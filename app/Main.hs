@@ -21,7 +21,7 @@ initialState :: SpaceSurvivalGame
 initialState = Game
   { player = ((0,-250), 0, ship)
   , bullets = [((0,0),0, bullet)]
-  , asteroids = [((0,250), 0, asteroid 5 5)]
+  , asteroids = [((0,250), -2, asteroid 5 5)]
   , paused = False  
   }
 
@@ -100,12 +100,18 @@ updatePlayerPosition game = game {player = ((limitMovement x' width 20,  y ), v,
                           v = retrieveVelocity( player game)
 
 updateBulletPosition :: SpaceSurvivalGame -> SpaceSurvivalGame
-updateBulletPosition game = game {bullets = updateObjectPosition (bullets game)}                        
+updateBulletPosition game = game {bullets = updateObjectPosition (bullets game)}              
+
+updateAsteroidPosition :: SpaceSurvivalGame -> SpaceSurvivalGame
+updateAsteroidPosition game = game {asteroids = updateObjectPosition (asteroids game)}        
 
 
 -- Call the all functions and update the game
 update :: Float -> SpaceSurvivalGame -> SpaceSurvivalGame
-update seconds game = if not (paused game) then (updatePlayerPosition . updateBulletPosition) game else game
+update seconds game = if not (paused game) then ( updatePlayerPosition 
+                                                . updateBulletPosition
+                                                . updateAsteroidPosition
+                                                ) game else game
 
 limitMovement :: Float -> Int -> Float -> Float
 limitMovement move width playerWidth
