@@ -10,11 +10,7 @@ type Object  = (Position, Velocity, Picture)
 
 -- Defining game elements
 data SpaceSurvivalGame = Game
-  { shipLocation :: (Float, Float)        
-  , shipHVelocity :: Float
-  , asteroidPosition :: (Float, Float)
-  , bulletPosition :: (Float, Float)
-  , player :: Object
+  { player :: Object
   , bullets :: [Object]
   , asteroids :: [Object]
   , paused :: Bool
@@ -23,11 +19,7 @@ data SpaceSurvivalGame = Game
 -- Initial game state
 initialState :: SpaceSurvivalGame
 initialState = Game
-  { shipLocation = (0,-250)
-  , shipHVelocity = 0
-  , asteroidPosition = (0, 250)
-  , bulletPosition = (0,0)
-  , player = ((0,-250), 0, ship)
+  { player = ((0,-250), 0, ship)
   , bullets = [((0,0),0, bullet)]
   , asteroids = [((0,250), 0, asteroid 5 5)]
   , paused = False  
@@ -48,15 +40,15 @@ drawObject :: Object -> Picture
 drawObject ((x,y), v, p) =
   translate x y p
 
-drawGame :: [Object] -> Picture
-drawGame objects = 
+drawObjectList :: [Object] -> Picture
+drawObjectList objects = 
   pictures $ map drawObject objects        
 
 render :: SpaceSurvivalGame -> Picture
 render game = 
     pictures [ drawObject (player game)            
-             , drawGame (bullets game)
-             , drawGame (asteroids game)]
+             , drawObjectList (bullets game)
+             , drawObjectList (asteroids game)]
 
 
 -- Keys configurations
@@ -71,8 +63,12 @@ handleKeys (EventKey (SpecialKey KeySpace ) Down _ _) game = bulletsGenerator ga
 -- handleKeys (EventKey (SpecialKey KeyDown ) Up _ _) game = game {}
 handleKeys _ game = game
 
+-- asteroidsGenerator :: SpaceSurvivalGame -> SpaceSurvivalGame
+-- asteroidsGenerator game  
+--   | asteroids game == [] = game{asteroids = ((x, y), 0, asteroid) : asteroids game}
+
 bulletsGenerator :: SpaceSurvivalGame -> SpaceSurvivalGame
-bulletsGenerator game = game {bullets = (retrieveObjectPosition (player game), 0, bullet) : bullets game}
+bulletsGenerator game = game {bullets = (retrieveObjectPosition (player game), 2, bullet) : bullets game}
 
 retrieveObjectPosition :: Object -> Position
 retrieveObjectPosition ((x, y), v, p) = (x, y)
@@ -89,6 +85,13 @@ updatePositionX ((x, y), v, p)  = x + v
 updatePositionY :: Object -> Float
 updatePositionY ((x, y), v, p)  = y + v
 
+updateObject :: Object -> Object
+updateObject ((x, y), v, p) = ((x, y+v), v, p)
+
+updateObjectPosition :: [Object] -> [Object]
+updateObjectPosition objs = map updateObject objs
+
+
 updatePlayerPosition :: SpaceSurvivalGame -> SpaceSurvivalGame
 updatePlayerPosition game = game {player = ((limitMovement x' width 20,  y ), v, ship)}
                         where
@@ -96,10 +99,13 @@ updatePlayerPosition game = game {player = ((limitMovement x' width 20,  y ), v,
                           x' = updatePositionX (player game)
                           v = retrieveVelocity( player game)
 
+updateBulletPosition :: SpaceSurvivalGame -> SpaceSurvivalGame
+updateBulletPosition game = game {bullets = updateObjectPosition (bullets game)}                        
+
 
 -- Call the all functions and update the game
 update :: Float -> SpaceSurvivalGame -> SpaceSurvivalGame
-update seconds game = if not (paused game) then updatePlayerPosition game else game
+update seconds game = if not (paused game) then (updatePlayerPosition . updateBulletPosition) game else game
 
 limitMovement :: Float -> Int -> Float -> Float
 limitMovement move width playerWidth
