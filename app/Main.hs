@@ -3,6 +3,11 @@ import Lib
 import Graphics.Gloss
 import Graphics.Gloss.Data.ViewPort
 import Graphics.Gloss.Interface.Pure.Game
+    ( KeyState(Down, Up),
+      SpecialKey(KeySpace, KeyLeft, KeyRight),
+      Key(SpecialKey),
+      Event(EventKey) )
+import System.Random
 
 type Position = (Float, Float)
 type Velocity = Float
@@ -19,31 +24,41 @@ data SpaceSurvivalGame = Game
 -- Initial game state
 initialState :: SpaceSurvivalGame
 initialState = Game
-  { player = ((0,-250), 0, ship)
+  { player = ((0, -250), 0, ship)
   , bullets = [((0,0),0, bullet)]
   , asteroids = [((0,250), -2, asteroid 5 5)]
   , paused = False  
   }
 
+
+generateRandomValue :: (Random a, RandomGen b) => a -> a -> b -> a
+generateRandomValue l h g = do fst $ randomR (l, h) g                        
+
+
+-- Asteroid Picture
 asteroid :: Float -> Float -> Picture
 asteroid w h = scale w h $ color white $ lineLoop
           [(1,5),(1,6),(2,4),(3,3),(4,3),(4,2),(3,2),(4,0),(3,-1),(2,-3),(0,-3),(-3,1),(-4,2),(-4,3),(-2,3),(1,5)]
 
+-- Bullet Picture
 bullet :: Picture
 bullet = color white $ rectangleSolid 3 5
 
+-- Player ship Picture
 ship :: Picture
 ship = color white $ lineLoop [(10,0), (0,25 ), (-10, 0), (9,0)]                
 
--- Draw all pictures at screen
+-- Draw an object on the screen
 drawObject :: Object -> Picture
 drawObject ((x,y), v, p) =
   translate x y p
 
+-- Draw an Object list on the screen
 drawObjectList :: [Object] -> Picture
 drawObjectList objects = 
   pictures $ map drawObject objects        
 
+-- Call all the drawers
 render :: SpaceSurvivalGame -> Picture
 render game = 
     pictures [ drawObject (player game)            
@@ -67,12 +82,28 @@ handleKeys _ game = game
 -- asteroidsGenerator game  
 --   | asteroids game == [] = game{asteroids = ((x, y), 0, asteroid) : asteroids game}
 
+
+
+verifyPosition :: (Ord a1, Num a1) => a1 -> ((a2, a1), b, c) -> Bool
+verifyPosition lim ((x, y), v, p) 
+                                  | lim < 0 && y <= lim = False
+                                  | lim > 0 && y >= lim = False
+                                  | otherwise = True 
+                                
+
+verifyBulletPositionToDestroy :: SpaceSurvivalGame -> SpaceSurvivalGame
+verifyBulletPositionToDestroy game = game {bullets = filter (verifyPosition 250) (bullets game)  }
+
+
+-- Generate bullets at player position
 bulletsGenerator :: SpaceSurvivalGame -> SpaceSurvivalGame
 bulletsGenerator game = game {bullets = (retrieveObjectPosition (player game), 2, bullet) : bullets game}
 
+--Retrieve the position from a given object
 retrieveObjectPosition :: Object -> Position
 retrieveObjectPosition ((x, y), v, p) = (x, y)
 
+-- Retrieve the velocity of a given object
 retrieveVelocity :: Object -> Float
 retrieveVelocity ((x, y), v, p) = v
 
@@ -111,6 +142,7 @@ update :: Float -> SpaceSurvivalGame -> SpaceSurvivalGame
 update seconds game = if not (paused game) then ( updatePlayerPosition 
                                                 . updateBulletPosition
                                                 . updateAsteroidPosition
+                                                . verifyBulletPositionToDestroy
                                                 ) game else game
 
 limitMovement :: Float -> Int -> Float -> Float

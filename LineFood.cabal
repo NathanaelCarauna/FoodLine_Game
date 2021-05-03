@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1c3fc9dc702e413449013b9b0af710acfcc6ae6b6c1054791f437121dd587b6a
+-- hash: fe347c3fbf384349b8fc8ac008f3a300264725f7bc54c00184a67f2ce1f2190a
 
 name:           LineFood
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
   build-depends:
       base >=4.7 && <5
     , gloss
+    , random
   default-language: Haskell2010
 
 executable LineFood-exe
@@ -48,6 +49,7 @@ executable LineFood-exe
       LineFood
     , base >=4.7 && <5
     , gloss
+    , random
   default-language: Haskell2010
 
 test-suite LineFood-test
@@ -62,4 +64,5 @@ test-suite LineFood-test
       LineFood
     , base >=4.7 && <5
     , gloss
+    , random
   default-language: Haskell2010
