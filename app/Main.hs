@@ -94,6 +94,9 @@ verifyPosition lim ((x, y), v, p)
 verifyBulletPositionToDestroy :: SpaceSurvivalGame -> SpaceSurvivalGame
 verifyBulletPositionToDestroy game = game {bullets = filter (verifyPosition 250) (bullets game)  }
 
+verifyAsteroidPositionToDestroy :: SpaceSurvivalGame -> SpaceSurvivalGame
+verifyAsteroidPositionToDestroy game = game {asteroids = filter (verifyPosition (-250)) (asteroids game)  }
+
 
 -- Generate bullets at player position
 bulletsGenerator :: SpaceSurvivalGame -> SpaceSurvivalGame
@@ -143,6 +146,7 @@ update seconds game = if not (paused game) then ( updatePlayerPosition
                                                 . updateBulletPosition
                                                 . updateAsteroidPosition
                                                 . verifyBulletPositionToDestroy
+                                                . verifyAsteroidPositionToDestroy
                                                 ) game else game
 
 limitMovement :: Float -> Int -> Float -> Float
