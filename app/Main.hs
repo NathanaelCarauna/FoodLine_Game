@@ -8,7 +8,7 @@ import Graphics.Gloss.Interface.Pure.Game
       Key(SpecialKey, Char),
       Event(EventKey) )
 import System.Random
-import RandomXpositions
+import Random
 
 type Position = (Float, Float)
 type Velocity = Float
@@ -20,7 +20,10 @@ data SpaceSurvivalGame = Game
   , lifes :: Float
   , score :: Float
   , bullets :: [Object]
+  , indexRandomPosition :: Int
+  , indexRandomScale :: Int
   , asteroids :: [Object]
+  , time :: Float
   , paused :: Bool
   } deriving Show
 
@@ -31,9 +34,12 @@ initialState = Game
   , lifes = 3
   , score = 0
   , bullets = []
-  , asteroids = [((head randomXpositions, 250), -2, asteroid 5 5)]
+  , indexRandomPosition = 0
+  , indexRandomScale = 0
+  , asteroids = [((head randomXpositions, 250), -2, asteroid 15 15)]
+  , time = 0
   , paused = False  
-  }
+  }            
             
 
 -- Asteroid Picture
@@ -63,7 +69,9 @@ drawObjectList objects =
 render :: SpaceSurvivalGame -> Picture
 render game | not (paused game) = pictures [ drawObject (player game)            
                                                  , drawObjectList (bullets game)
-                                                 , drawObjectList (asteroids game)]
+                                                 , drawObjectList (asteroids game)
+                                                --  , drawObject ((-175,250),0, scale 0.1 0.1 $ color white $ Text $show (time game) )
+                                            ]
             |paused game = drawObject ((-175,0),0, scale 0.4 0.4 $ color white $ Text "Jogo Pausado")
             |otherwise = drawObject ((-175,0),0, scale 0.4 0.4 $ color white $ Text "Game Over")
     
@@ -77,14 +85,32 @@ handleKeys (EventKey (SpecialKey KeyRight ) Down _ _) game = game {player = upda
 handleKeys (EventKey (SpecialKey KeyRight ) Up _ _) game = game {player = updateVelocity (player game) 0}
 handleKeys (EventKey (SpecialKey KeySpace ) Down _ _) game = bulletsGenerator game
 handleKeys (EventKey (Char 'p'  ) Up _ _) game = game {paused = not $ paused game}
--- handleKeys (EventKey (SpecialKey KeyDown ) Down _ _) game = game {}
+handleKeys (EventKey (Char 'a' ) Down _ _) game = asteroidsGenerator game
 -- handleKeys (EventKey (SpecialKey KeyDown ) Up _ _) game = game {}
 handleKeys _ game = game
 
--- asteroidsGenerator :: SpaceSurvivalGame -> SpaceSurvivalGame
--- asteroidsGenerator game  
---   | asteroids game == [] = game{asteroids = ((x, y), 0, asteroid) : asteroids game}
 
+asteroidsGenerator :: SpaceSurvivalGame -> SpaceSurvivalGame
+asteroidsGenerator game 
+                        | indexRandomPosition game >= 600 = game {indexRandomPosition = 0}
+                        | indexRandomScale game >= 45 = game {indexRandomScale = 0}
+                        | time game >= 60 = game
+                              { asteroids =  ((xPosition, 250), -2, asteroid scale scale) : asteroids game
+                              , indexRandomPosition = indexRandomPosition game + 1    
+                              , indexRandomScale = indexRandomScale game + 1      
+                              , time = 0                            
+                              }
+                        | otherwise = game            
+
+              where 
+                xPosition =retrieveValueFromList (indexRandomPosition game) randomXpositions
+                scale = retrieveValueFromList (indexRandomScale game) randomScale 
+
+clock :: SpaceSurvivalGame -> SpaceSurvivalGame
+clock game = game{time = time game + 1}
+
+retrieveValueFromList :: Int -> [Float] -> Float
+retrieveValueFromList index list = list !! index 
 
 
 -- Verify object position and return if position is greater than limit
@@ -171,7 +197,9 @@ update seconds game | not (paused game) = ( updatePlayerPosition
                                           . updateAsteroidPosition
                                           . verifyBulletPositionToDestroy
                                           . verifyAsteroidPositionToDestroy
-                                          ) game                       
+                                          . clock
+                                          . asteroidsGenerator
+                                          ) game                  
                     | otherwise = game
 
 limitMovement :: Float -> Int -> Float -> Float

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b55ebf1a0b1f35fceb7eb4b008bc0f40b2b888206dbc5b1fe5e3f3450e6981d1
+-- hash: 8e2ba64c90cf92ea8fc2d414710ddd1bb3bfd30140e5cc1d41571f633c4d3894
 
 name:           LineFood
 version:        0.1.0.0
@@ -41,7 +41,7 @@ library
 executable LineFood-exe
   main-is: Main.hs
   other-modules:
-      RandomXpositions
+      Random
       Paths_LineFood
   hs-source-dirs:
       app
