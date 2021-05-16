@@ -30,7 +30,7 @@ initialState = Game
   { player = ((0, -250), 0, ship)
   , lifes = 3
   , score = 0
-  , bullets = [((0,0),0, bullet)]
+  , bullets = []
   , asteroids = [((head randomXpositions, 250), -2, asteroid 5 5)]
   , paused = False  
   }
@@ -61,10 +61,12 @@ drawObjectList objects =
 
 -- Call all the drawers
 render :: SpaceSurvivalGame -> Picture
-render game = 
-    pictures [ drawObject (player game)            
-             , drawObjectList (bullets game)
-             , drawObjectList (asteroids game)]
+render game | not (paused game) = pictures [ drawObject (player game)            
+                                                 , drawObjectList (bullets game)
+                                                 , drawObjectList (asteroids game)]
+            |paused game = drawObject ((-175,0),0, scale 0.4 0.4 $ color white $ Text "Jogo Pausado")
+            |otherwise = drawObject ((-175,0),0, scale 0.4 0.4 $ color white $ Text "Game Over")
+    
 
 
 -- Keys configurations
@@ -164,12 +166,13 @@ updateAsteroidPosition game = game {asteroids = updateObjectPosition (asteroids 
 
 -- Call the all functions and update the game
 update :: Float -> SpaceSurvivalGame -> SpaceSurvivalGame
-update seconds game = if not (paused game) then ( updatePlayerPosition 
-                                                . updateBulletPosition
-                                                . updateAsteroidPosition
-                                                . verifyBulletPositionToDestroy
-                                                . verifyAsteroidPositionToDestroy
-                                                ) game else game
+update seconds game | not (paused game) = ( updatePlayerPosition 
+                                          . updateBulletPosition
+                                          . updateAsteroidPosition
+                                          . verifyBulletPositionToDestroy
+                                          . verifyAsteroidPositionToDestroy
+                                          ) game                       
+                    | otherwise = game
 
 limitMovement :: Float -> Int -> Float -> Float
 limitMovement move width playerWidth
