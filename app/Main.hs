@@ -26,7 +26,7 @@ data SpaceSurvivalGame = Game
   , indexRandomScale :: Int
   , asteroids :: [Object]
   , time :: Float
-  , paused :: Bool
+  , state :: Int
   } deriving Show
 
 -- Initial game state
@@ -40,7 +40,7 @@ initialState = Game
   , indexRandomScale = 0
   , asteroids = []
   , time = 0
-  , paused = False
+  , state = 0
   }
 
 
@@ -69,13 +69,13 @@ drawObjectList objects =
 
 -- Call all the drawers
 render :: SpaceSurvivalGame -> Picture
-render game | not (paused game) = pictures [ drawObject (player game)
+render game |  (state game) == 0 = pictures [ drawObject (player game)
                                                  , drawObjectList (bullets game)
                                                  , drawObjectList (asteroids game)
                                                  , drawObject ((-175,250),0, scale 0.1 0.1 $ color white $ Text $show (score game), 0, True )
                                             ]
-            |paused game = drawObject ((-175,0),0, scale 0.4 0.4 $ color white $ Text "Jogo Pausado", 0, True)
-            |otherwise = drawObject ((-175,0),0, scale 0.4 0.4 $ color white $ Text "Game Over",0, True)
+            |state game == 1 = drawObject ((-175,0),0, scale 0.4 0.4 $ color white $ Text "Jogo Pausado", 0, True)
+            |state game == 2 = drawObject ((-175,0),0, scale 0.4 0.4 $ color white $ Text "Game Over",0, True)
 
 
 
@@ -86,11 +86,19 @@ handleKeys (EventKey (SpecialKey KeyLeft ) Up _ _) game = game {player = updateV
 handleKeys (EventKey (SpecialKey KeyRight ) Down _ _) game = game {player = updateVelocity (player game) playerSpeed}
 handleKeys (EventKey (SpecialKey KeyRight ) Up _ _) game = game {player = updateVelocity (player game) 0}
 handleKeys (EventKey (SpecialKey KeySpace ) Down _ _) game = bulletsGenerator game
-handleKeys (EventKey (Char 'p'  ) Up _ _) game = game {paused = not $ paused game}
+handleKeys (EventKey (Char 'p'  ) Up _ _) game = game {state = changePausedState (state game)}
 handleKeys (EventKey (Char 'a' ) Down _ _) game = asteroidsGenerator game
--- handleKeys (EventKey (SpecialKey KeyDown ) Up _ _) game = game {}
+handleKeys (EventKey (Char 'n' ) Up _ _) game = resetGame game
 handleKeys _ game = game
 
+resetGame :: SpaceSurvivalGame -> SpaceSurvivalGame
+resetGame game 
+              | state game == 2 = initialState
+              | otherwise = game
+
+changePausedState :: Int -> Int
+changePausedState 0 = 1
+changePausedState 1 = 0
 
 asteroidsGenerator :: SpaceSurvivalGame -> SpaceSurvivalGame
 asteroidsGenerator game
@@ -148,21 +156,17 @@ retrieveObjectPosition ((x, y), v, p, s, a) = (x, y)
 updatePlayerLifes :: Float -> Float -> Float
 updatePlayerLifes currentLife value = currentLife + value
 
--- Update Score
-updateScore :: Float -> Float -> Float
-updateScore currentScore points = currentScore + points
-
 
 -- Verify if a collisionB happened
 collisionB :: Object -> Object -> Object
 collisionB ((x1, y1), v1, p1, s1, a1) ((x2, y2), v2, p2, s2, a2)
                                              | x1 >= x2 - s2 * raio && x1 <= x2 + s2 * raio && y1 >= y2 - s2 * raio = ((x1, y1), v1, p1, s1, False)
                                              | otherwise = ((x1, y1), v1, p1, s1, True)
-                                          where 
+                                          where
                                             raio = 3
 
 verifyCollisionB :: [Object] ->Object -> Object
-verifyCollisionB meteoros bala@((x1, y1), v1, p1, s1, a1) 
+verifyCollisionB meteoros bala@((x1, y1), v1, p1, s1, a1)
                       | null meteoros = bala
                       | a1 == False = ((x1, y1), v1, p1, s1, False)
                       | a1 == True = foldl (collisionB) bala meteoros
@@ -175,22 +179,39 @@ collisionA ((x1, y1), v1, p1, s1, a1) ((x2, y2), v2, p2, s2, a2)
                                         raio = 3
 
 verifyCollisionA :: [Object] ->Object -> Object
-verifyCollisionA balas meteoro@((x1, y1), v1, p1, s1, a1) 
+verifyCollisionA balas meteoro@((x1, y1), v1, p1, s1, a1)
                       | null balas = meteoro
                       | a1 == False = ((x1, y1), v1, p1, s1, False)
                       | a1 == True = foldl (collisionA) meteoro balas
 
+checkPlayerCollision :: SpaceSurvivalGame -> SpaceSurvivalGame
+checkPlayerCollision game = game {player = verifyCollisionB (asteroids game) (player game)}
 
+checkPlayerState :: Bool -> Int
+checkPlayerState True = 0
+checkPlayerState False = 2
 
+updateStateGameOver :: SpaceSurvivalGame -> SpaceSurvivalGame
+updateStateGameOver game = game{state = checkPlayerState $ retrieveIsAlive (player game)}
 
 verifyBulletVsAsteroidCollision :: SpaceSurvivalGame -> SpaceSurvivalGame
-verifyBulletVsAsteroidCollision game = game { 
+verifyBulletVsAsteroidCollision game = game {
                                               bullets = filter retrieveIsAlive $ map (verifyCollisionB meteoros) balas
-                                            , asteroids = filter retrieveIsAlive $ map(verifyCollisionA balas) meteoros                                            
+                                            , asteroids = filter retrieveIsAlive $ map(verifyCollisionA balas) meteoros
                                             }
-                                      where                        
+                                      where
                                           balas = bullets game
                                           meteoros = asteroids game
+
+updateScore :: SpaceSurvivalGame -> SpaceSurvivalGame
+updateScore game = game {score = score game + sum (genarateBoolList (asteroids game)) }
+
+genarateBoolList :: [Object] -> [Float]
+genarateBoolList lista = map (convertBoolToFloat . retrieveIsAlive) lista
+
+convertBoolToFloat :: Bool -> Float
+convertBoolToFloat False = 100
+convertBoolToFloat True = 0
 
 
 retrieveIsAlive :: Object -> Bool
@@ -231,7 +252,7 @@ updateAsteroidPosition game = game {asteroids = updateObjectPosition (asteroids 
 
 -- Call the all functions and update the game
 update :: Float -> SpaceSurvivalGame -> SpaceSurvivalGame
-update seconds game | not (paused game) = ( updatePlayerPosition
+update seconds game | (state game) == 0 =   ( updatePlayerPosition
                                           . updateBulletPosition
                                           . updateAsteroidPosition
                                           . verifyBulletPositionToDestroy
@@ -239,6 +260,9 @@ update seconds game | not (paused game) = ( updatePlayerPosition
                                           . clock
                                           . asteroidsGenerator
                                           . verifyBulletVsAsteroidCollision
+                                          . updateScore
+                                          . updateStateGameOver
+                                          . checkPlayerCollision
                                           ) game
                     | otherwise = game
 
